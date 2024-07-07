@@ -1,0 +1,43 @@
+sources:
+  - source_type: milvus_vdb
+    config: 
+      id: statutes
+      description: "Semantic search over statutes of Singapore law"
+      init_params:
+        ur: "http://localhost:19530"
+        user: "username"
+        password: "password"
+        db_name: "legal_demo"
+      search_params: 
+        collection_name: statutes
+        limit: 2
+        output_fields: ["text", "title"]
+      embedding_params:
+        emb_model:
+          module: "langchain.embeddings"
+          class: HuggingFaceBgeEmbeddings
+        init_params:
+          model_name: "BAAI/bge-small-en-v1.5"
+          model_kwargs: { device: cpu }
+          encode_kwargs: { normalize_embeddings: True }
+          query_instruction = "Represent this sentence for searching relevant passages: "
+
+  - source_type: milvus_vdb
+    config: 
+      id: judgments 
+      description: "Semantic search over historical court judgments from Singapore law"
+      init_params:
+        ur: "http://localhost:19530"
+        user: "username"
+        password: "password"
+        db_name: "legal_demo"
+      search_params: 
+        output_fields: ["text", "title"]
+
+  - source_type: tavily_web
+    config: 
+      id: web_search
+      description: "Web search over Singapore laws"
+      search_params:
+        search_depth: advanced
+        max_results: 2
