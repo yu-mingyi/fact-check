@@ -59,11 +59,11 @@ class MilvusVDB(BaseSource):
 
     def _load_embedding_model(self, embedding_params):
         try:
-            emb_module = embedding_params["emb_model"]["module"]
-            emb_model_loader = embedding_params["emb_model"]["class"]
+            emb_load_module = embedding_params["load_params"]["module"]
+            emb_load_class = embedding_params["load_params"]["class"]
             return getattr(
-                importlib.import_module(emb_module), 
-                emb_model_loader
+                importlib.import_module(emb_load_module), 
+                emb_load_class
             )(**embedding_params["init_params"])
         except Exception as e:
             print(f"Error loading embedding model: {e}")
