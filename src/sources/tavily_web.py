@@ -5,7 +5,7 @@
 ####################
 
 # Generic/Built-in
-
+import os
 
 # Libs
 from tavily import TavilyClient
@@ -30,7 +30,7 @@ from .base_source import BaseSource
 class TavilyWeb(BaseSource):
 
     def __init__(self, config: dict):
-        super.__init__(config)
+        super().__init__(config)
         self._source_type = "tavily_web"
         self._search_params = config.get("search_params", {})
 
@@ -47,12 +47,12 @@ class TavilyWeb(BaseSource):
 
     def query(self, search_text):
         response = self._client.search(
-            query=f"Is there evidence to support this claim: '{search_text}'?",
+            query=search_text,
             **self._search_params
         )
         return [
             {"title": r["url"], "text": r["content"]}
-            for r in response
+            for r in response["results"]
         ]
 
 ##########

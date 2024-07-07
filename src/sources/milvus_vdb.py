@@ -32,7 +32,7 @@ from .base_source import BaseSource
 class MilvusVDB(BaseSource):
 
     def __init__(self, config: dict):
-        super.__init__(config)
+        super().__init__(config)
         self._source_type = "milvus_vdb"
         self._search_params = config["search_params"]
 
@@ -51,10 +51,11 @@ class MilvusVDB(BaseSource):
         return self._source_type
 
     def query(self, search_text: str) -> List:
-        return self._client.search(
+        search_results = self._client.search(
             data = [self._model.embed_query(search_text)],
             **self._search_params
         )[0]
+        return [r["entity"] for r in search_results]
 
 
     def _load_embedding_model(self, embedding_params):

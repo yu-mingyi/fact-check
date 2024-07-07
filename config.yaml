@@ -1,8 +1,27 @@
+agent_config:
+  max_checks: 5 # limits number of checks (to prevent excessive llm calls)
+
+llm:
+  load_params:
+    module: "langchain_openai"
+    class: ChatOpenAI
+  init_params: 
+    model: "gpt-3.5-turbo"
+    temperature: 0
+
+  # NOTE: gemini seems to be having issues with structured output on pydantic lists
+  # load_params:
+  #   module: "langchain_google_genai"
+  #   class: ChatGoogleGenerativeAI
+  # init_params: 
+  #   model: "gemini-1.5-flash-latest"
+  #   temperature: 0
+
 sources:
   - source_type: milvus_vdb
     config: 
       id: statutes
-      description: "Semantic search over statutes of Singapore law"
+      description: "Semantic search over statutes of Singapore law. Contains acts passed into law by parliament."
       init_params:
         ur: "http://localhost:19530"
         user: "username"
@@ -13,31 +32,42 @@ sources:
         limit: 2
         output_fields: ["text", "title"]
       embedding_params:
-        emb_model:
+        load_params:
           module: "langchain.embeddings"
           class: HuggingFaceBgeEmbeddings
-        init_params:
+        init_params: 
           model_name: "BAAI/bge-small-en-v1.5"
           model_kwargs: { device: cpu }
           encode_kwargs: { normalize_embeddings: True }
-          query_instruction = "Represent this sentence for searching relevant passages: "
+          query_instruction: "Represent this sentence for searching relevant passages: "
 
   - source_type: milvus_vdb
     config: 
       id: judgments 
-      description: "Semantic search over historical court judgments from Singapore law"
+      description: "Semantic search over historical court judgments from Singapore law. Contains judges opinions on legal cases."
       init_params:
         ur: "http://localhost:19530"
         user: "username"
         password: "password"
         db_name: "legal_demo"
       search_params: 
+        collection_name: judgments
+        limit: 2
         output_fields: ["text", "title"]
+      embedding_params:
+        load_params:
+          module: "langchain.embeddings"
+          class: HuggingFaceBgeEmbeddings
+        init_params: 
+          model_name: "BAAI/bge-small-en-v1.5"
+          model_kwargs: { device: cpu }
+          encode_kwargs: { normalize_embeddings: True }
+          query_instruction: "Represent this sentence for searching relevant passages: "
 
   - source_type: tavily_web
     config: 
       id: web_search
-      description: "Web search over Singapore laws"
+      description: "Web search. Up to date information on general topics. Avoid when other sources are available."
       search_params:
         search_depth: advanced
         max_results: 2

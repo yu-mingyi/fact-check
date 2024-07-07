@@ -30,7 +30,7 @@ from .abstract_source import AbstractSource
 class BaseSource(AbstractSource):
 
     def __init__(self, config: dict):
-        super.__init__()
+        super().__init__()
         self._id = config['id']
         self._description = config['description']
 

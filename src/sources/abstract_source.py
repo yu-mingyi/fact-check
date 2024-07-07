@@ -36,13 +36,13 @@ class AbstractSource(ABC):
     def query(self, search_text):
         raise NotImplementedError
 
-    @abstractmethod
     @property
+    @abstractmethod
     def id(self):
         raise NotImplementedError
 
-    @abstractmethod
     @property
+    @abstractmethod
     def description(self):
         raise NotImplementedError
 
