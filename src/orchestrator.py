@@ -14,7 +14,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.graph import StateGraph, END
 
 # Custom
-
+from . import sources
 
 ##################
 # Configurations #
@@ -152,18 +152,18 @@ class FactCheckOrchestrator:
                 llm_config["load_params"]["class"]
             )(**llm_config["init_params"])
         except Exception as e:
-            raise(f"Error loading LLM: {e}")
+            raise Exception(f"Error loading LLM: {e}")
 
     def _load_source(self, source):
         print(f"Loading source '{source['config']['id']}'...")
         try:
             source_module, source_class = SOURCE_MAPPING[source["source_type"]]
             return getattr(
-                importlib.import_module(f"src.sources.{source_module}"), 
+                getattr(sources, source_module), 
                 source_class
             )(source["config"])
         except Exception as e:
-            raise(f"Error loading source: {e}")
+            raise Exception(f"Error loading source: {e}")
 
     def _build_graph(self):
         builder = StateGraph(AgentState)
