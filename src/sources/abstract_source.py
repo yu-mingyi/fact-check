@@ -33,7 +33,7 @@ class AbstractSource(ABC):
     """
 
     @abstractmethod
-    def query(self, search_text):
+    def query(self, search_text: str):
         raise NotImplementedError
 
     @property

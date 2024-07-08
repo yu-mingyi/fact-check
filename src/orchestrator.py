@@ -15,6 +15,7 @@ from langgraph.graph import StateGraph, END
 
 # Custom
 from . import sources
+from .source import AbstractSource
 
 ##################
 # Configurations #
@@ -43,7 +44,10 @@ class AgentState(TypedDict):
     revised_text: str
 
 class FactCheckOrchestrator:
-    def __init__(self, config):
+    """ Orchestrates agentic workflow.
+    """
+
+    def __init__(self, config: dict):
         self._agent_config = config["agent_config"]
         self._llm = self._load_llm(config["llm"])
         self._sources = {
@@ -56,6 +60,8 @@ class FactCheckOrchestrator:
 
 
     def verify(self, input_text):
+        """ Executes verification workflow.
+        """
         final_state = self._graph.invoke(
             {"input_text": input_text}, 
             config = self._thread
@@ -66,6 +72,10 @@ class FactCheckOrchestrator:
 
     # Nodes
     def analyst_node(self, state: AgentState):
+        """ Langgraph node for running analyst agent.
+        Breaks down an input text into claims. 
+        Identifies relevant sources for information on each claim.
+        """
         sources = "\n".join([
             f"{source_id} -> {source.description}" 
             for source_id, source 
@@ -82,6 +92,10 @@ class FactCheckOrchestrator:
         return {"claims": claims.claims}
 
     def verifier_node(self, state: AgentState):
+        """ Langgraph node for running verifier agent.
+        Queries sources for information on claims, then evaluates each claim
+        against this information. 
+        """
         MAX_CHECKS = self._agent_config["max_checks"]
         evaluations = []
         structured_llm = self._llm.with_structured_output(Evaluation)
@@ -110,6 +124,9 @@ class FactCheckOrchestrator:
         return {"evaluations": evaluations}
 
     def summarizer_node(self, state: AgentState):
+        """ Langgraph node for running summarizer agent.
+        Summarizes results of evaluation into a report. 
+        """
         evidence = "\n\n".join([
             f"- Evaluation: {e.evaluation}\n- Conflict: {e.conflict}"
             for e 
@@ -126,6 +143,10 @@ class FactCheckOrchestrator:
         }
 
     def reviser_node(self, state: AgentState):
+        """ Langgraph node for running reviser agent.
+        Writes a revised version of the input text. 
+        Conditionally executed if evaluation process indicates a need for revisions.
+        """
         print("Beginning revision ...")
         response = self._llm.invoke([
             HumanMessage(content=REVISER_PROMPT.format(
@@ -141,7 +162,32 @@ class FactCheckOrchestrator:
 
 
     # Helpers
-    def _load_llm(self, llm_config):
+    def _load_llm(self, llm_config: dict):
+        """
+        Load a language model (LLM) based on the provided configuration.
+
+        Args:
+            llm_config (dict): The configuration for loading the LLM. 
+                It should contain the following keys:
+                - "load_params" (dict): The parameters for loading the LLM. 
+                    It should contain the following keys:
+                    - "module" (str): The module name of the LLM.
+                    - "class" (str): The class name of the LLM.
+                    - "api_key" (Optional[str]): The API key for the LLM.
+                            If an API key is not defined as an env var, 
+                            it will be loaded from the config.
+                - "init_params" (dict): The initialization parameters for the LLM.
+                    It should contain the following keys:
+                    - "model" (str): The model name of the LLM.
+                    Other keys may be defined based on the API specification.
+
+        Returns:
+            object: The loaded LLM object.
+
+        Raises:
+            Exception: If there is an error loading the LLM.
+
+        """
         print("Loading LLM ...")
         try:
             api_env_var = API_MAPPING[llm_config["load_params"]["module"]]
@@ -154,7 +200,34 @@ class FactCheckOrchestrator:
         except Exception as e:
             raise Exception(f"Error loading LLM: {e}")
 
-    def _load_source(self, source):
+    def _load_source(self, source: dict) -> AbstractSource:
+        """
+        Load a source based on the provided configuration.
+
+        Args:
+            source (dict): The configuration for the source.
+                The configuration should contain the following keys:
+                - "source_type" (str): The type of the source. 
+                    This maps to a module in the sources package based on SOURCE_MAPPING.
+                - "config" (dict): The configuration for the source.
+                    The configuration should contain the following keys:
+                    - "id" (str): The ID of the source.
+                    - "description" (str): The description of the source.
+                        Used by the analyst agent to route the claim to the appropriate sources.
+                    Specific source types may have additional required keys.
+
+        Returns:
+            AbstractSource: The loaded source object.
+                Sources should implement the AbstractSource interface.
+                Required methods:
+                - query(self, search_text): Search the source for the given text.
+                - id(self): The ID of the source.
+                - description(self): The description of the source.
+
+        Raises:
+            Exception: If there is an error loading the source.
+
+        """
         print(f"Loading source '{source['config']['id']}'...")
         try:
             source_module, source_class = SOURCE_MAPPING[source["source_type"]]
@@ -166,6 +239,9 @@ class FactCheckOrchestrator:
             raise Exception(f"Error loading source: {e}")
 
     def _build_graph(self):
+        """ Builds langgraph graph.
+        Returns compiled graph.
+        """
         builder = StateGraph(AgentState)
 
         nodes = [            

@@ -30,6 +30,8 @@ from .base_source import BaseSource
 ###########
 
 class MilvusVDB(BaseSource):
+    """ Connects to a Milvus server and performs search queries.
+    """
 
     def __init__(self, config: dict):
         super().__init__(config)
@@ -47,10 +49,21 @@ class MilvusVDB(BaseSource):
         self._model = self._load_embedding_model(config["embedding_params"])
 
     @property
-    def source_type(self):
+    def source_type(self) -> str:
         return self._source_type
 
-    def query(self, search_text: str) -> List:
+    def query(self, search_text: str) -> List[dict]:
+        """ Perform a search query using the given `search_text`.
+
+        Args:
+            search_text (str): The text to search for.
+
+        Returns:
+            List[dict]: A list of entities that match the search query.
+                Each dictionary should contain the following keys:
+                - "title": The title of the entity.
+                - "text": The text of the entity.
+        """
         search_results = self._client.search(
             data = [self._model.embed_query(search_text)],
             **self._search_params
@@ -58,7 +71,30 @@ class MilvusVDB(BaseSource):
         return [r["entity"] for r in search_results]
 
 
-    def _load_embedding_model(self, embedding_params):
+    def _load_embedding_model(self, embedding_params: dict) -> object:
+        """ Load an embedding model based on the provided configuration.
+
+        Args:
+            embedding_params (dict): The configuration for loading the embedding model.
+                It should contain the following keys:
+                - "load_params" (dict): The parameters for loading the embedding model.
+                    It should contain the following keys:
+                    - "module" (str): The module name for importing the embedding model.
+                    - "class" (str): The class name for importing the embedding model.
+                - "init_params" (dict): The initialization parameters for the embedding model.
+                    It should contain the following keys:
+                    - "model_name" (str): The name of the embedding model, e.g., "BAAI/bge-small-en-v1.5"
+                    Other keys may be defined based on the API specification.
+
+        Returns:
+            object: The loaded embedding model object.
+                As currently implemented, this should adhere to the 
+                langchain_community.embeddings API
+
+        Raises:
+            Exception: If there is an error loading the embedding model.
+
+        """
         try:
             emb_load_module = embedding_params["load_params"]["module"]
             emb_load_class = embedding_params["load_params"]["class"]
